@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Your Cart - ᛝQUΞST HAVΞNᛝ</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+    <!-- НАВИГАЦИОНЕН БАР -->
+    <div class="nav-bar">
+        <div class="logo">
+            <a href="/" style="color: white; text-decoration: none; font-size: 24px;">
+                ᛝQUΞST HAVΞNᛝ
+            </a>
+        </div>
+
+        <div class="nav-links">
+            <!-- ИКОНА ЗА КОЛИЧКА -->
+            <a href="{% if user.is_authenticated %}{% url 'view_cart' %}{% else %}{% url 'login' %}?next={{ request.path }}{% endif %}"
+               style="margin-right: 15px; text-decoration: none; color: white; position: relative;">
+                🛒 Cart
+                {% if user.is_authenticated and cart.item_count > 0 %}
+                <span style="
+                    position: absolute;
+                    top: -8px;
+                    right: 60px;
+                    background-color: #e74c3c;
+                    color: white;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                ">
+                    {{ cart.total_quantity }}
+                </span>
+                {% endif %}
+            </a>
+
+            {% if user.is_authenticated %}
+                <span class="user-greeting">{{ user.username }}</span>
+                <a href="{% url 'logout' %}">Exit</a>
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Registration</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- СЪОБЩЕНИЯ -->
+    <div class="messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <h1 class="title">🛒 YOUR CART</h1>
+
+    <div class="cart-container">
+        {% if cart_items %}
+            <!-- ПРОДУКТИ В КОЛИЧКАТА -->
+            <div class="cart-items-grid">
+                {% for item in cart_items %}
+                <div class="cart-item-card">
+                    <!-- СНИМКА -->
+                    <div class="cart-item-image-container">
+                        {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}"
+                                 alt="{{ item.product.name }}"
+                                 class="cart-item-image">
+                        {% else %}
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: #2d2d2d; color: #666;">
+                                <span style="font-size: 24px;">📷</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ИНФОРМАЦИЯ ЗА ПРОДУКТА -->
+                    <div class="cart-item-info">
+                        <h3 class="cart-item-name">{{ item.product.name }}</h3>
+
+                        <p class="cart-item-description">
+                            {{ item.product.description|truncatechars:150 }}
+                        </p>
+
+                        <!-- ЦЕНА -->
+                        <div class="cart-item-price-section">
+                            {% if item.product.discounted_price %}
+                                <span class="current-price">{{ item.product.discounted_price }} лв</span>
+                                <span class="original-price">{{ item.product.price }} лв</span>
+                                <span class="discount-badge">
+                                    SAVE {{ item.product.get_discount_percentage|floatformat:0 }}%
+                                </span>
+                            {% else %}
+                                <span class="current-price">{{ item.product.price }} лв</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- УПРАВЛЕНИЕ НА КОЛИЧЕСТВОТО -->
+                        <div class="quantity-controls">
+                            <!-- Бутон за намаляване -->
+                            <form method="post" action="{% url 'remove_from_cart' item.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="quantity-btn remove" title="Remove one">
+                                    -
+                                </button>
+                            </form>
+
+                            <!-- Количество -->
+                            <span class="quantity-display">{{ item.quantity }}</span>
+
+                            <!-- Бутон за увеличаване -->
+                            <form method="post" action="{% url 'add_to_cart' item.product.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="from_cart" value="true">
+                                <button type="submit" class="quantity-btn" title="Add one more">
+                                    +
+                                </button>
+                            </form>
+
+                            <!-- Общо за този продукт -->
+                            <span class="item-total">
+                                Total: {{ item.subtotal }} лв
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Бутон за пълно премахване -->
+                    <form method="post" action="{% url 'remove_from_cart' item.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="remove_all" value="true">
+                        <button type="submit"
+                                style="background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 24px;"
+                                onclick="return confirm('Remove all {{ item.product.name }} from cart?')"
+                                title="Remove all">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- ОБОБЩЕНИЕ НА ПОРЪЧКАТА -->
+            <div class="order-summary">
+                    <div class="summary-row">
+                        <span class="summary-label">Items in Cart:</span>
+                        <span class="summary-value">{{ cart.item_count }}</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span class="summary-label">Subtotal:</span>
+                        <span class="summary-value">{{ cart.total_price|floatformat:2 }} лв</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span class="summary-label">Shipping:</span>
+                        <span class="summary-value">{{ cart.SHIPPING|floatformat:2 }} лв</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span class="summary-label">Total:</span>
+                        <span class="total-value">{{ cart.total_with_shipping|floatformat:2 }} лв</span>
+                    </div>
+            </div>
+
+            <!-- БУТОНИ ЗА ДЕЙСТВИЯ -->
+            <div class="action-buttons">
+                <a href="/" class="continue-shopping-btn">
+                    ← Continue Shopping
+                </a>
+
+
+                {% if cart.items.count > 0 %}
+                    <a href="{% url 'checkout' %}" class="checkout-btn">
+                        🛍️ Proceed to Checkout
+                    </a>
+                {% else %}
+                    <button class="checkout-btn disabled" disabled>
+                        🛍️ Вашата количка е празна
+                    </button>
+                {% endif %}
+            </div>
+
+        {% else %}
+            <!-- ПРАЗНА КОЛИЧКА -->
+            <div class="empty-cart">
+                <h2>Your cart is empty</h2>
+                <p>Looks like you haven't added any games or consoles yet.</p>
+                <p>Explore our awesome collection and find something you'll love!</p>
+
+                <a href="/" class="browse-products-btn">
+                    Browse Products →
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

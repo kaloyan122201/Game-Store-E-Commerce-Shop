@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>GameZone</title>
+        <link rel="stylesheet" href="../static/css/style.css">
+
+    </head>
+    <body>
+    <!-- НАВИГАЦИОНЕН БАР -->
+    <div class="nav-bar">
+        <div class="logo">
+            <a href="/" style="color: white; text-decoration: none; font-size: 24px;">
+                ᛝQUΞST HAVΞNᛝ
+            </a>
+        </div>
+
+        <div class="nav-links">
+            <!-- ИКОНА ЗА КОЛИЧКА (ВИНАГИ ВИДИМА) -->
+            <a href="{% if user.is_authenticated %}{% url 'view_cart' %}{% else %}{% url 'login' %}?next={{ request.path }}{% endif %}"
+            style="margin-right: 15px; text-decoration: none; color: white; position: relative;">
+                🛒 Cart
+                {% if user.is_authenticated and user.cart.total_items > 0 %}
+                <span style="
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background-color: #e74c3c;
+                    color: white;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                ">
+            {{ user.cart.total_items }}
+        </span>
+        {% endif %}
+            </a>
+
+        {% if user.is_authenticated %}
+            <span class="user-greeting">{{ user.username }}</span>
+            <a href="{% url 'logout' %}">Exit</a>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}"> Registration</a>
+        {% endif %}
+        </div>
+    </div>
+
+    <!-- СЪОБЩЕНИЯ -->
+    <div class="messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+
+    <style>
+
+    </style>
+    {% if categories %}
+        <div class="categories-grid">
+            {% for category in categories %}
+            <div class="category-card">
+
+                <!-- СНИМКА (С ФИКСИРАН РАЗМЕР) -->
+                <div class="image-container">
+                    {% if category.image %}
+                        <img src="{{ category.image.url }}"
+                             alt="{{ category.name }}"
+                             class="category-image">
+                    {% else %}
+                        <div class="no-image">
+                            <span></span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- ТЕКСТ ПОД СНИМКАТА -->
+                <div class="category-info">
+                    <h3 class="category-name">{{ category.name }}</h3>
+
+                    <p class="category-description">
+                        {{ category.description|truncatechars:100 }}
+                    </p>
+
+                    <a href="/category/{{ category.slug }}/" class="view-button">
+                        See Products →
+                    </a>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px;">
+            <p style="font-size: 18px; color: #666;"> No categories</p>
+            <a href="/admin" style="color: #3498db; text-decoration: none;">
+                Add them in the admin panel →
+            </a>
+        </div>
+    {% endif %}
+
+    </body>
+</html>

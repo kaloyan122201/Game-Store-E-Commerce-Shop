@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Order Confirmed - Quest Haven</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <!-- НАВИГАЦИОНЕН БАР -->
+    <div class="nav-bar">
+        <div class="logo">
+            <a href="/" style="color: white; text-decoration: none; font-size: 24px;">
+                ᛝQUΞST HAVΞNᛝ
+            </a>
+        </div>
+
+        <div class="nav-links">
+            <!-- ИКОНА ЗА КОЛИЧКА -->
+            <a href="{% if user.is_authenticated %}{% url 'view_cart' %}{% else %}{% url 'login' %}?next={{ request.path }}{% endif %}"
+            style="margin-right: 15px; text-decoration: none; color: white; position: relative;">
+                🛒 Cart
+                {% if user.is_authenticated and user.cart.total_items > 0 %}
+                <span class="cart-badge">
+                    {{ user.cart.total_items }}
+                </span>
+                {% endif %}
+            </a>
+
+            {% if user.is_authenticated %}
+                <span class="user-greeting">{{ user.username }}</span>
+                <a href="{% url 'logout' %}">Exit</a>
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Registration</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- СЪОБЩЕНИЯ -->
+    <div class="messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Заглавие на сайта -->
+    <h1 class="title">ᛝQUΞST HAVΞNᛝ</h1>
+
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+
+        <h1 class="success-title">ORDER CONFIRMED!</h1>
+        <h2 class="success-subtitle">Thank you for your purchase!</h2>
+
+        <div class="order-card">
+            <h3 class="order-card-title">📦 Order Details</h3>
+
+            <div class="order-detail">
+                <span class="detail-label">Order Number:</span>
+                <span class="detail-value highlight">#{{ order.id }}</span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Order Date:</span>
+                <span class="detail-value">{{ order.created_at|date:"d.m.Y H:i" }}</span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Customer Name:</span>
+                <span class="detail-value">{{ order.customer_name }}</span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">{{ order.email }}</span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Shipping Address:</span>
+                <span class="detail-value">
+                    {{ order.shipping_address }}<br>
+                    {{ order.city }}, {{ order.postal_code }}
+                </span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Payment Method:</span>
+                <span class="detail-value">
+                    {% if order.payment_method == 'cash_on_delivery' %}
+                        💰 Cash on Delivery
+                    {% elif order.payment_method == 'bank_transfer' %}
+                        🏦 Bank Transfer
+                    {% elif order.payment_method == 'card' %}
+                        💳 Credit/Debit Card
+                    {% else %}
+                        {{ order.payment_method|title }}
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Total Amount:</span>
+                <span class="detail-value total-amount">
+                    {{ order.total_amount|floatformat:2 }} лв.
+                </span>
+            </div>
+
+            <div class="order-detail">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value status-processing">
+                    ⏳ Processing
+                </span>
+            </div>
+
+            <!-- ⭐⭐⭐ ДОБАВЕНА СЕКЦИЯ ЗА ПРОДУКТИТЕ ⭐⭐⭐ -->
+            <div class="order-items-section" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #3498db;">
+                <h4 style="color: #3498db; margin-bottom: 15px;">🛍️ Items Ordered:</h4>
+
+                {% for item in order.order_items.all %}
+                <div class="order-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #333;">
+                    <div style="flex: 2;">
+                        <strong style="color: white;">{{ item.product_name }}</strong>
+                        <div style="color: #aaa; font-size: 14px;">Quantity: {{ item.quantity }}</div>
+                    </div>
+                    <div style="flex: 1; text-align: right;">
+                        <span style="color: #27ae60; font-weight: bold;">
+                            {{ item.product_price|floatformat:2 }} лв × {{ item.quantity }}
+                        </span>
+                        <div style="color: white; font-size: 16px; font-weight: bold;">
+                            = {{ item.total_price|floatformat:2 }} лв
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="color: #aaa; text-align: center; padding: 20px;">
+                    No items found in this order.
+                </div>
+                {% endfor %}
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-top: 2px solid #3498db; margin-top: 10px;">
+                    <strong style="color: white; font-size: 18px;">Items Total:</strong>
+                    <span style="color: #27ae60; font-size: 20px; font-weight: bold;">
+                        {% with total=0 %}
+                            {% for item in order.order_items.all %}
+                                {{ item.total_price|add:total }}
+                            {% endfor %}
+                        {% endwith %}
+                        лв
+                    </span>
+                </div>
+            </div>
+        </div> <!-- ⭐⭐⭐ ТУК ЗАТВАРЯ order-card ⭐⭐⭐ -->
+
+        <div class="email-notification">
+            <h4 class="email-notification-title">📧 Email Sent</h4>
+            <p class="email-notification-text">
+                We have sent a confirmation email to <strong>{{ order.email }}</strong>
+                with all the details of your order. Please check your inbox (and spam folder).
+            </p>
+        </div>
+
+        <div class="whats-next">
+            <h3 class="whats-next-title">📋 What happens next?</h3>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h4>Order Processing</h4>
+                    <p class="step-description">We are preparing your order for shipment.</p>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h4>Shipping</h4>
+                    <p class="step-description">Your order will be shipped within 1-2 business days.</p>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h4>Delivery</h4>
+                    <p class="step-description">Estimated delivery: 3-5 business days.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="success-action-buttons">
+            <a href="/" class="btn btn-primary">
+                🏠 Continue Shopping
+            </a>
+
+            <a href="{% url 'view_cart' %}" class="btn btn-secondary">
+                🛒 View Cart
+            </a>
+
+            <a href="mailto:support@questhaven.com" class="btn btn-success">
+                📞 Contact Support
+            </a>
+        </div>
+
+        <p class="contact-info">
+            Have questions? Contact us at <strong>support@questhaven.com</strong> or call <strong>+359 888 123 456</strong>
+        </p>
+    </div>
+</body>
+</html>

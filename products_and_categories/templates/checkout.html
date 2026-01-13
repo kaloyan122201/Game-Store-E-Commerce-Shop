@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Checkout - GameZone</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <style>
+
+    </style>
+    <script>
+        function showPaymentDetails(method) {
+            // Hide all payment details
+            document.querySelectorAll('.payment-details').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show selected payment details
+            const detailsEl = document.getElementById(method + '_details');
+            if (detailsEl) {
+                detailsEl.classList.add('active');
+            }
+            
+            // Update active state for payment methods
+            document.querySelectorAll('.payment-method').forEach(el => {
+                el.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+        
+        function formatCardNumber(input) {
+            let value = input.value.replace(/\s/g, '').replace(/\D/g, '');
+            let formatted = value.replace(/(\d{4})/g, '$1 ').trim();
+            input.value = formatted.substring(0, 19);
+        }
+        
+        function formatExpiryDate(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            input.value = value.substring(0, 5);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default payment method
+            showPaymentDetails('cash');
+        });
+    </script>
+</head>
+<body>
+    <!-- НАВИГАЦИОНЕН БАР (същия като във вашите файлове) -->
+    <div class="nav-bar">
+        <div class="logo">
+            <a href="/" style="color: white; text-decoration: none; font-size: 24px;">
+                ᛝQUΞST HAVΞNᛝ
+            </a>
+        </div>
+
+        <div class="nav-links">
+            <!-- ИКОНА ЗА КОЛИЧКА -->
+            <a href="{% if user.is_authenticated %}{% url 'view_cart' %}{% else %}{% url 'login' %}?next={{ request.path }}{% endif %}"
+            style="margin-right: 15px; text-decoration: none; color: white; position: relative;">
+                🛒 Cart
+                {% if user.is_authenticated and user.cart.total_items > 0 %}
+                <span style="
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background-color: #e74c3c;
+                    color: white;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                ">
+                    {{ user.cart.total_items }}
+                </span>
+                {% endif %}
+            </a>
+
+            {% if user.is_authenticated %}
+                <span class="user-greeting">{{ user.username }}</span>
+                <a href="{% url 'logout' %}">Exit</a>
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Registration</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- СЪОБЩЕНИЯ -->
+    <div class="messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="checkout-container">
+        <h1 class="checkout-title">🛒 CHECKOUT</h1>
+        
+        {% if cart.items.count == 0 %}
+            <div style="text-align: center; padding: 50px;">
+                <p style="font-size: 20px; color: #666; margin-bottom: 20px;">
+                    Your cart is empty!
+                </p>
+                <a href="/" class="back-button">← Continue Shopping</a>
+            </div>
+        {% else %}
+            <form method="POST" action="{% url 'checkout' %}">
+                {% csrf_token %}
+                
+                <div class="checkout-grid">
+                    <!-- ЛЯВА КОЛОНА: Форма за плащане -->
+                    <div class="left-column">
+                        <!-- Секция за адрес -->
+                        <div class="form-section">
+                            <h2 class="section-title">📍 Shipping Address</h2>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Full Name <span class="required">*</span></label>
+                                <input type="text" name="full_name" class="form-input" required 
+                                       value="{{ user.get_full_name|default:'' }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Email <span class="required">*</span></label>
+                                <input type="email" name="email" class="form-input" required 
+                                       value="{{ user.email|default:'' }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Phone <span class="required">*</span></label>
+                                <input type="tel" name="phone" class="form-input" required 
+                                       placeholder="+359 888 123 456">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Address <span class="required">*</span></label>
+                                <textarea name="address" class="form-textarea" required 
+                                          placeholder="Street, Number, Building, Floor, Apartment"></textarea>
+                            </div>
+                            
+                            <div class="form-group" style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                                <div>
+                                    <label class="form-label">City <span class="required">*</span></label>
+                                    <input type="text" name="city" class="form-input" required 
+                                           placeholder="Sofia">
+                                </div>
+                                <div>
+                                    <label class="form-label">Postal Code <span class="required">*</span></label>
+                                    <input type="text" name="postal_code" class="form-input" required 
+                                           placeholder="1000">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Notes (Optional)</label>
+                                <textarea name="notes" class="form-textarea" 
+                                          placeholder="Additional instructions for delivery..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Секция за начин на плащане -->
+                        <div class="form-section">
+                            <h2 class="section-title">💳 Payment Method</h2>
+                            
+                            <!-- Наложен платеж -->
+                            <div class="payment-method active" onclick="showPaymentDetails('cash')">
+                                <input type="radio" name="payment_method" value="cash_on_delivery" checked>
+                                <span class="payment-icon">💰</span>
+                                <div>
+                                    <strong>Cash on Delivery</strong>
+                                    <p style="margin: 5px 0 0 0; color: #aaa; font-size: 14px;">
+                                        Pay when you receive your order
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div id="cash_details" class="payment-details active">
+                                <p>You will pay the courier upon delivery of your order.</p>
+                                <p><strong>Extra fee:</strong> 2.00 BGN</p>
+                            </div>
+                            
+                            <!-- Банков превод -->
+                            <div class="payment-method" onclick="showPaymentDetails('bank')">
+                                <input type="radio" name="payment_method" value="bank_transfer">
+                                <span class="payment-icon">🏦</span>
+                                <div>
+                                    <strong>Bank Transfer</strong>
+                                    <p style="margin: 5px 0 0 0; color: #aaa; font-size: 14px;">
+                                        Transfer to our bank account
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div id="bank_details" class="payment-details">
+                                <p><strong>Bank Account Details:</strong></p>
+                                <ul style="color: #aaa; margin: 10px 0; padding-left: 20px;">
+                                    <li>Bank: UniCredit Bulbank</li>
+                                    <li>IBAN: BG12UNCR12345678901234</li>
+                                    <li>Account Holder: Quest Haven Ltd.</li>
+                                </ul>
+                                <p>Send proof of payment to: payments@questhaven.com</p>
+                            </div>
+                            
+                            <!-- Кредитна карта -->
+                            <div class="payment-method" onclick="showPaymentDetails('card')">
+                                <input type="radio" name="payment_method" value="card">
+                                <span class="payment-icon">💳</span>
+                                <div>
+                                    <strong>Credit/Debit Card</strong>
+                                    <p style="margin: 5px 0 0 0; color: #aaa; font-size: 14px;">
+                                        Visa, MasterCard, American Express
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div id="card_details" class="payment-details">
+                                <div class="card-inputs">
+                                    <div class="form-group">
+                                        <label class="form-label">Card Number</label>
+                                        <input type="text" class="form-input" 
+                                               placeholder="1234 5678 9012 3456"
+                                               oninput="formatCardNumber(this)">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Expiry Date</label>
+                                        <input type="text" class="form-input" 
+                                               placeholder="MM/YY"
+                                               oninput="formatExpiryDate(this)">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">CVV</label>
+                                        <input type="password" class="form-input" 
+                                               placeholder="123" maxlength="3">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Cardholder Name</label>
+                                        <input type="text" class="form-input" 
+                                               placeholder="JOHN DOE">
+                                    </div>
+                                </div>
+                                <p style="color: #aaa; font-size: 14px; margin-top: 10px;">
+                                    🔒 Your payment information is secure and encrypted.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ДЯСНА КОЛОНА: Обобщение на поръчката -->
+                    <div class="right-column">
+                        <div class="order-summary">
+                            <h2 class="summary-title">📝 Order Summary</h2>
+                            
+                            <div class="order-items">
+                                {% for item in cart.items.all %}
+                                <div class="order-item">
+                                    <div class="item-name">{{ item.product.name }}</div>
+                                    <div class="item-quantity">×{{ item.quantity }}</div>
+                                    <div class="item-price"> =<strong>{{ item.get_item_total|floatformat:2 }} лв.</strong></div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div style="margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Subtotal:</span>
+                                    <span>{{ cart.total_price|floatformat:2 }} лв.</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Shipping:</span>
+  <!-- SHIPPING PRICE (CHANGEABLE)  -->
+                                    <span>10.00 лв.</span>
+                                </div>
+                                {% if request.method == 'POST' and request.POST.payment_method == 'cash_on_delivery' %}
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Cash Fee:</span>
+                                    <span>2.00 лв.</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="order-total">
+                                <span>TOTAL:</span>
+                                <span class="total-amount">
+                                    {% if request.method == 'POST' and request.POST.payment_method == 'cash_on_delivery' %}
+                                        {{ cart.total_price|add:5|floatformat:2 }}
+                                    {% else %}
+                                        {{ cart.total_price|add:10|floatformat:2 }}
+                                    {% endif %}
+                                    лв.
+                                </span>
+                            </div>
+                            
+                            <button type="submit" class="checkout-button">
+                                ✅ COMPLETE ORDER
+                            </button>
+                            
+                            <a href="{% url 'view_cart' %}" class="back-button" style="display: block; text-align: center;">
+                                ← Back to Cart
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!-- products_and_categories/templates/category_products.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+    <title>{{ category.name }} - Products</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+     <!-- НАВИГАЦИОНЕН БАР -->
+    <div class="nav-bar">
+        <div class="logo">
+            <a href="/" style="color: white; text-decoration: none; font-size: 24px;">
+                ᛝQUΞST HAVΞNᛝ
+            </a>
+        </div>
+
+        <div class="nav-links">
+            <!-- ИКОНА ЗА КОЛИЧКА (ВИНАГИ ВИДИМА) -->
+            <a href="{% if user.is_authenticated %}{% url 'view_cart' %}{% else %}{% url 'login' %}?next={{ request.path }}{% endif %}"
+            style="margin-right: 15px; text-decoration: none; color: white; position: relative;">
+                🛒 Cart
+                {% if user.is_authenticated and user.cart.total_items > 0 %}
+                <span style="
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background-color: #e74c3c;
+                    color: white;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                ">
+            {{ user.cart.total_items }}
+        </span>
+        {% endif %}
+            </a>
+
+        {% if user.is_authenticated %}
+            <span class="user-greeting">{{ user.username }}</span>
+            <a href="{% url 'logout' %}">Exit</a>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}"> Registration</a>
+        {% endif %}
+        </div>
+    </div>
+
+    <!-- СЪОБЩЕНИЯ -->
+    <div class="messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <h1 class = "title" >ᛝQUΞST HAVΞNᛝ</h1>
+    <style>
+        .title{
+                font-size: 50px;
+                text-align: center;
+                letter-spacing: 80px;
+            }
+    </style>
+
+
+    <h1> Products in: {{ category.name }}</h1>
+
+    <!-- Брой продукти -->
+    <p style="color: #666; margin-bottom: 20px;">
+        Found: <strong>{{ products|length }}</strong> products
+    </p>
+
+    {% if products %}
+        <div class="products-grid">
+            {% for product in products %}
+            <div class="product-card">
+
+                <!-- СНИМКА (НАЙ-ГОРЕ) -->
+                <div class="product-image-container">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}"
+                             alt="{{ product.name }}"
+                             class="product-image">
+                    {% else %}
+                        <div class="no-product-image">
+                            <span>📷</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- ИНФОРМАЦИЯ ЗА ПРОДУКТА -->
+                <div class="product-info">
+
+                    <!-- ИМЕ НА ПРОДУКТА -->
+                    <h3 class="product-name">{{ product.name }}</h3>
+
+                    <!-- ОПИСАНИЕ -->
+                    <p class="product-description">
+                        {{ product.description|truncatechars:100 }}
+                    </p>
+
+                    <!-- ЦЕНА -->
+                    <div class="product-price">
+                        {{ product.price|floatformat:2 }} лв.
+                    </div>
+
+                    <!-- НАЛИЧНОСТ -->
+                    {% if product.stock > 0 %}
+                        <p class="in-stock">
+                             In stock: {{ product.stock }} p.
+                        </p>
+                    {% else %}
+                        <p class="out-of-stock">
+                             Out of stock
+                        </p>
+                    {% endif %}
+
+                    <!-- БУТОН (ПО ЖЕЛАНИЕ) -->
+                    {% if product.stock > 0 %}
+                        {% if user.is_authenticated %}
+                            <!-- Ако потребителят е логнат - добавя директно -->
+                            <form method="post" action="{% url 'add_to_cart' product.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="add-to-cart">
+                                    🛒 Add to cart
+                                </button>
+                            </form>
+                            {% else %}
+                                <!-- Ако потребителят НЕ е логнат - води към login -->
+                                <a href="{% url 'login' %}?next={{ request.path }}">
+                                    <button class="add-to-cart">
+                                        🛒 Add to cart
+                                    </button>
+                                </a>
+                            {% endif %}
+                            {% else %}
+                                <!-- Ако продуктът е изчерпан -->
+                                <button class="add-to-cart" disabled style="background-color: #444; cursor: not-allowed;">
+                                    ⚠️ Out of Stock
+                                </button>
+                            {% endif %}
+
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Ако няма продукти -->
+        <div style="text-align: center; padding: 40px; border: 2px dashed #ddd; border-radius: 10px; margin: 20px 0;">
+            <p style="font-size: 20px; color: #666; margin-bottom: 20px;">
+                There is no products in this category.
+            </p>
+            <a href="/admin/products_and_categories/product/add/"
+               style="display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">
+                Add product
+            </a>
+        </div>
+    {% endif %}
+    <!-- Навигация -->
+    <a href="/" class="back-link">← Go back to the Categories</a>
+</body>
+</html>
